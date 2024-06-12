@@ -1,21 +1,20 @@
 /*
-    ESP-NOW Broadcast Slave
+    ESP-NOW Broadcast Master
     Lucas Saavedra Vaz - 2024
 
-    This sketch demonstrates how to receive broadcast messages from a master device using the ESP-NOW protocol.
+    This sketch demonstrates how to broadcast messages to all devices within the ESP-NOW network.
+    This example is intended to be used with the ESP-NOW Broadcast Slave example.
 
     The master device will broadcast a message every 5 seconds to all devices within the network.
+    This will be done using by registering a peer object with the broadcast address.
 
-    The slave devices will receive the broadcasted messages. If they are not from a known master, they will be registered as a new master
-    using a callback function.
+    The slave devices will receive the broadcasted messages and print them to the Serial Monitor.
 */
 
 #include "ESP32_NOW.h"
 #include "WiFi.h"
 
 #include <esp_mac.h>  // For the MAC2STR and MACSTR macros
-
-#include <vector>
 
 /* Definitions */
 
@@ -25,56 +24,41 @@
 
 // Creating a new class that inherits from the ESP_NOW_Peer class is required.
 
-class ESP_NOW_Peer_Class : public ESP_NOW_Peer {
+class ESP_NOW_Broadcast_Peer : public ESP_NOW_Peer {
 public:
-  // Constructor of the class
-  ESP_NOW_Peer_Class(const uint8_t *mac_addr, uint8_t channel, wifi_interface_t iface, const uint8_t *lmk) : ESP_NOW_Peer(mac_addr, channel, iface, lmk) {}
+  // Constructor of the class using the broadcast address
+  ESP_NOW_Broadcast_Peer(uint8_t channel, wifi_interface_t iface, const uint8_t *lmk) : ESP_NOW_Peer(ESP_NOW.BROADCAST_ADDR, channel, iface, lmk) {}
 
   // Destructor of the class
-  ~ESP_NOW_Peer_Class() {}
+  ~ESP_NOW_Broadcast_Peer() {
+    remove();
+  }
 
-  // Function to register the master peer
-  bool add_peer() {
-    if (!add()) {
-      log_e("Failed to register the broadcast peer");
+  // Function to properly initialize the ESP-NOW and register the broadcast peer
+  bool begin() {
+    if (!ESP_NOW.begin() || !add()) {
+      log_e("Failed to initialize ESP-NOW or register the broadcast peer");
       return false;
     }
     return true;
   }
 
-  // Function to print the received messages from the master
-  void onReceive(const uint8_t *data, size_t len, bool broadcast) {
-    Serial.printf("Received a message from master " MACSTR " (%s)\n", MAC2STR(addr()), broadcast ? "broadcast" : "unicast");
-    Serial.printf("  Message: %s\n", (char *)data);
+  // Function to send a message to all devices within the network
+  bool send_message(const uint8_t *data, size_t len) {
+    if (!send(data, len)) {
+      log_e("Failed to broadcast message");
+      return false;
+    }
+    return true;
   }
 };
 
 /* Global Variables */
 
-// List of all the masters. It will be populated when a new master is registered
-std::vector<ESP_NOW_Peer_Class> masters;
+uint32_t msg_count = 0;
 
-/* Callbacks */
-
-// Callback called when an unknown peer sends a message
-void register_new_master(const esp_now_recv_info_t *info, const uint8_t *data, int len, void *arg) {
-  if (memcmp(info->des_addr, ESP_NOW.BROADCAST_ADDR, 6) == 0) {
-    Serial.printf("Unknown peer " MACSTR " sent a broadcast message\n", MAC2STR(info->src_addr));
-    Serial.println("Registering the peer as a master");
-
-    ESP_NOW_Peer_Class new_master(info->src_addr, ESPNOW_WIFI_CHANNEL, WIFI_IF_STA, NULL);
-
-    masters.push_back(new_master);
-    if (!masters.back().add_peer()) {
-      Serial.println("Failed to register the new master");
-      return;
-    }
-  } else {
-    // The slave will only receive broadcast messages
-    log_v("Received a unicast message from " MACSTR, MAC2STR(info->src_addr));
-    log_v("Igorning the message");
-  }
-}
+// Create a broadcast peer object
+ESP_NOW_Broadcast_Peer broadcast_peer(ESPNOW_WIFI_CHANNEL, WIFI_IF_STA, NULL);
 
 /* Main */
 
@@ -91,26 +75,33 @@ void setup() {
     delay(100);
   }
 
-  Serial.println("ESP-NOW Example - Broadcast Slave");
+  Serial.println("ESP-NOW Example - Broadcast Master");
   Serial.println("Wi-Fi parameters:");
   Serial.println("  Mode: STA");
   Serial.println("  MAC Address: " + WiFi.macAddress());
   Serial.printf("  Channel: %d\n", ESPNOW_WIFI_CHANNEL);
 
-  // Initialize the ESP-NOW protocol
-  if (!ESP_NOW.begin()) {
-    Serial.println("Failed to initialize ESP-NOW");
-    Serial.println("Rebooting in 5 seconds...");
+  // Register the broadcast peer
+  if (!broadcast_peer.begin()) {
+    Serial.println("Failed to initialize broadcast peer");
+    Serial.println("Reebooting in 5 seconds...");
     delay(5000);
     ESP.restart();
   }
 
-  // Register the new peer callback
-  ESP_NOW.onNewPeer(register_new_master, NULL);
-
-  Serial.println("Setup complete. Waiting for a master to broadcast a message...");
+  Serial.println("Setup complete. Broadcasting messages every 5 seconds.");
 }
 
 void loop() {
-  delay(1000);
+  // Broadcast a message to all devices within the network
+  char data[32];
+  snprintf(data, sizeof(data), "Hello, World! #%lu", msg_count++);
+
+  Serial.printf("Broadcasting message: %s\n", data);
+
+  if (!broadcast_peer.send_message((uint8_t *)data, sizeof(data))) {
+    Serial.println("Failed to broadcast message");
+  }
+
+  delay(5000);
 }
