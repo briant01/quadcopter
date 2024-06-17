@@ -4,8 +4,15 @@
   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files.
   The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 */
+
 #include <esp_now.h>
 #include <WiFi.h>
+
+//A1-3 = remote 1
+//D2-4 = remote 2
+
+
+
 
 // REPLACE WITH YOUR RECEIVER MAC Address
 //Mac Address: 08:D1:F9:22:BF:A0

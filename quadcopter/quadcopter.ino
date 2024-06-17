@@ -8,6 +8,8 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
+//21/SDA = 
+
 // Structure example to receive data
 // Must match the sender structure
 typedef struct struct_message {
