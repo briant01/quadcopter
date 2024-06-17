@@ -1,107 +1,80 @@
 /*
-    ESP-NOW Broadcast Master
-    Lucas Saavedra Vaz - 2024
-
-    This sketch demonstrates how to broadcast messages to all devices within the ESP-NOW network.
-    This example is intended to be used with the ESP-NOW Broadcast Slave example.
-
-    The master device will broadcast a message every 5 seconds to all devices within the network.
-    This will be done using by registering a peer object with the broadcast address.
-
-    The slave devices will receive the broadcasted messages and print them to the Serial Monitor.
+  Rui Santos & Sara Santos - Random Nerd Tutorials
+  Complete project details at https://RandomNerdTutorials.com/esp-now-esp32-arduino-ide/
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files.
+  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 */
+#include <esp_now.h>
+#include <WiFi.h>
 
-#include "ESP32_NOW.h"
-#include "WiFi.h"
+// REPLACE WITH YOUR RECEIVER MAC Address
+//Mac Address: 08:D1:F9:22:BF:A0
+uint8_t broadcastAddress[] = {0x08, 0xD1, 0xF9, 0x22, 0xBF, 0xA0};
 
-#include <esp_mac.h>  // For the MAC2STR and MACSTR macros
+// Structure example to send data
+// Must match the receiver structure
+typedef struct struct_message {
+  char a[32];
+  int b;
+  float c;
+  bool d;
+} struct_message;
 
-/* Definitions */
+// Create a struct_message called myData
+struct_message myData;
 
-#define ESPNOW_WIFI_CHANNEL 6
+esp_now_peer_info_t peerInfo;
 
-/* Classes */
-
-// Creating a new class that inherits from the ESP_NOW_Peer class is required.
-
-class ESP_NOW_Broadcast_Peer : public ESP_NOW_Peer {
-public:
-  // Constructor of the class using the broadcast address
-  ESP_NOW_Broadcast_Peer(uint8_t channel, wifi_interface_t iface, const uint8_t *lmk) : ESP_NOW_Peer(ESP_NOW.BROADCAST_ADDR, channel, iface, lmk) {}
-
-  // Destructor of the class
-  ~ESP_NOW_Broadcast_Peer() {
-    remove();
-  }
-
-  // Function to properly initialize the ESP-NOW and register the broadcast peer
-  bool begin() {
-    if (!ESP_NOW.begin() || !add()) {
-      log_e("Failed to initialize ESP-NOW or register the broadcast peer");
-      return false;
-    }
-    return true;
-  }
-
-  // Function to send a message to all devices within the network
-  bool send_message(const uint8_t *data, size_t len) {
-    if (!send(data, len)) {
-      log_e("Failed to broadcast message");
-      return false;
-    }
-    return true;
-  }
-};
-
-/* Global Variables */
-
-uint32_t msg_count = 0;
-
-// Create a broadcast peer object
-ESP_NOW_Broadcast_Peer broadcast_peer(ESPNOW_WIFI_CHANNEL, WIFI_IF_STA, NULL);
-
-/* Main */
-
-void setup() {
-  Serial.begin(115200);
-  while (!Serial) {
-    delay(10);
-  }
-
-  // Initialize the Wi-Fi module
-  WiFi.mode(WIFI_STA);
-  WiFi.setChannel(ESPNOW_WIFI_CHANNEL);
-  while (!WiFi.STA.started()) {
-    delay(100);
-  }
-
-  Serial.println("ESP-NOW Example - Broadcast Master");
-  Serial.println("Wi-Fi parameters:");
-  Serial.println("  Mode: STA");
-  Serial.println("  MAC Address: " + WiFi.macAddress());
-  Serial.printf("  Channel: %d\n", ESPNOW_WIFI_CHANNEL);
-
-  // Register the broadcast peer
-  if (!broadcast_peer.begin()) {
-    Serial.println("Failed to initialize broadcast peer");
-    Serial.println("Reebooting in 5 seconds...");
-    delay(5000);
-    ESP.restart();
-  }
-
-  Serial.println("Setup complete. Broadcasting messages every 5 seconds.");
+// callback when data is sent
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  Serial.print("\r\nLast Packet Send Status:\t");
+  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
+ 
+void setup() {
+  // Init Serial Monitor
+  Serial.begin(115200);
+ 
+  // Set device as a Wi-Fi Station
+  WiFi.mode(WIFI_STA);
 
-void loop() {
-  // Broadcast a message to all devices within the network
-  char data[32];
-  snprintf(data, sizeof(data), "Hello, World! #%lu", msg_count++);
-
-  Serial.printf("Broadcasting message: %s\n", data);
-
-  if (!broadcast_peer.send_message((uint8_t *)data, sizeof(data))) {
-    Serial.println("Failed to broadcast message");
+  // Init ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
   }
 
-  delay(5000);
+  // Once ESPNow is successfully Init, we will register for Send CB to
+  // get the status of Trasnmitted packet
+  esp_now_register_send_cb(OnDataSent);
+  
+  // Register peer
+  memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+  peerInfo.channel = 0;  
+  peerInfo.encrypt = false;
+  
+  // Add peer        
+  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+    Serial.println("Failed to add peer");
+    return;
+  }
+}
+ 
+void loop() {
+  // Set values to send
+  strcpy(myData.a, "THIS IS A CHAR");
+  myData.b = random(1,20);
+  myData.c = 1.2;
+  myData.d = false;
+  
+  // Send message via ESP-NOW
+  esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+   
+  if (result == ESP_OK) {
+    Serial.println("Sent with success");
+  }
+  else {
+    Serial.println("Error sending the data");
+  }
+  delay(2000);
 }
