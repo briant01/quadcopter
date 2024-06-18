@@ -11,10 +11,25 @@
 //A1-3 = remote 1
 //D2-4 = remote 2
 
+#define VRXLEFT_PIN  36 // ESP32 pin GPIO36 (ADC0) connected to VRX pin
+#define VRYLEFT_PIN  39 // ESP32 pin GPIO39 (ADC0) connected to VRY pin
+#define VRXRIGHT_PIN 34 // ESP32 pin GPIO34 (ADC0) connected to VRX pin
+#define VRYRIGHT_PIN 35 // ESP32 pin GPIO35 (ADC0) connected to VRY pin
 
+/*
+#define VRXLEFT_PIN  D5 // ESP32 pin GPIO36 (ADC0) connected to VRX pin
+#define VRYLEFT_PIN  D3 // ESP32 pin GPIO39 (ADC0) connected to VRY pin
 
+#define VRXRIGHT_PIN  A2 //pin
+#define VRYRIGHT_PIN  A1 // ESP32 pin GPIO39 (ADC0) connected to VRY pin
+*/
 
-// REPLACE WITH YOUR RECEIVER MAC Address
+int valueLeftX = 0; // to store the X-axis value
+int valueLeftY = 0; // to store the Y-axis value
+
+int valueRightX = 0; // to store the X-axis value
+int valueRightY = 0; // to store the Y-axis value
+
 //Mac Address: 08:D1:F9:22:BF:A0
 uint8_t broadcastAddress[] = {0x08, 0xD1, 0xF9, 0x22, 0xBF, 0xA0};
 
@@ -40,7 +55,7 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
  
 void setup() {
   // Init Serial Monitor
-  Serial.begin(115200);
+  Serial.begin(9600);
  
   // Set device as a Wi-Fi Station
   WiFi.mode(WIFI_STA);
@@ -84,4 +99,23 @@ void loop() {
     Serial.println("Error sending the data");
   }
   delay(2000);
+
+  // read X and Y analog values
+  valueLeftX = analogRead(VRXLEFT_PIN);
+  valueLeftY = analogRead(VRYLEFT_PIN);
+  valueRightX = analogRead(VRXRIGHT_PIN);
+  valueRightY = analogRead(VRYRIGHT_PIN);
+
+  // print data to Serial Monitor on Arduino IDE
+  Serial.print("Left x = ");
+  Serial.print(valueLeftX);
+  Serial.print(", Left y = ");
+  Serial.println(valueLeftY);
+
+  Serial.print("Right x = ");
+  Serial.print(valueRightX);
+  Serial.print(", Right y = ");
+  Serial.println(valueRightY);
+
+  delay(200);
 }
