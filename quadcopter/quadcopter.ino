@@ -13,10 +13,10 @@
 // Structure example to receive data
 // Must match the sender structure
 typedef struct struct_message {
-    char a[32];
-    int b;
-    float c;
-    bool d;
+  int valueLeftX;
+  int valueLeftY;
+  int valueRightX;
+  int valueRightY;
 } struct_message;
 
 // Create a struct_message called myData
@@ -27,14 +27,14 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
   Serial.print("Bytes received: ");
   Serial.println(len);
-  Serial.print("Char: ");
-  Serial.println(myData.a);
-  Serial.print("Int: ");
-  Serial.println(myData.b);
-  Serial.print("Float: ");
-  Serial.println(myData.c);
-  Serial.print("Bool: ");
-  Serial.println(myData.d);
+  Serial.print("Left X: ");
+  Serial.println(myData.valueLeftX);
+  Serial.print("Left Y: ");
+  Serial.println(myData.valueLeftY);
+  Serial.print("Right X: ");
+  Serial.println(myData.valueRightX);
+  Serial.print("Right Y: ");
+  Serial.println(myData.valueRightY);
   Serial.println();
 }
  
