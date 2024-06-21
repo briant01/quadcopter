@@ -1,27 +1,19 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
-/*
-#define VRXLEFT_PIN  0 // ESP32 pin GPIO36 (ADC0) connected to VRX pin
-#define VRYLEFT_PIN  26 // ESP32 pin GPIO39 (ADC0) connected to VRY pin
-#define VRXRIGHT_PIN 34 // ESP32 pin GPIO34 (ADC0) connected to VRX pin
-#define VRYRIGHT_PIN 39 // ESP32 pin GPIO35 (ADC0) connected to VRY pin
-*/
+// Define joystick pins
+const int VRXLEFT_PIN = 0;  // ESP32 pin GPIO36 (ADC0)
+const int VRYLEFT_PIN = 26; // ESP32 pin GPIO39 (ADC0)
+const int VRXRIGHT_PIN = 34; // ESP32 pin GPIO34 (ADC0)
+const int VRYRIGHT_PIN = 39; // ESP32 pin GPIO35 (ADC0)
 
-const int VRXLEFT_PIN = 0; //D5
-const int VRYLEFT_PIN = 26; //D3
-
-const int VRXRIGHT_PIN = 34; //A2
-const int VRYRIGHT_PIN = 39; //A1
-
-
-int valueLeftX = 0; // to store the X-axis value
-int valueLeftY = 0; // to store the Y-axis value
-
+// Variables to store joystick values
+int valueLeftX = 0;  // to store the X-axis value
+int valueLeftY = 0;  // to store the Y-axis value
 int valueRightX = 0; // to store the X-axis value
 int valueRightY = 0; // to store the Y-axis value
 
-// Mac Address: 08:D1:F9:22:BF:A0
+// Mac Address
 uint8_t broadcastAddress[] = {0x08, 0xD1, 0xF9, 0x22, 0xBF, 0xA0};
 
 // Structure to send data
@@ -40,16 +32,16 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("\r\nLast Packet Send Status:\t");
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
- 
+
 void setup() {
-  // Init Serial Monitor
+  // Initialize Serial Monitor
   Serial.begin(115200);
   Serial.println("Setup started");
 
   // Set device as a Wi-Fi Station
   WiFi.mode(WIFI_STA);
 
-  // Init ESP-NOW
+  // Initialize ESP-NOW
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
     return;
@@ -64,19 +56,25 @@ void setup() {
   peerInfo.encrypt = false;
   
   // Add peer        
-  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
     Serial.println("Failed to add peer");
     return;
   }
   Serial.println("Setup completed");
 }
- 
+
 void loop() {
   // Read X and Y analog values
   valueLeftX = analogRead(VRXLEFT_PIN);
   valueLeftY = analogRead(VRYLEFT_PIN);
   valueRightX = analogRead(VRXRIGHT_PIN);
   valueRightY = analogRead(VRYRIGHT_PIN);
+
+  // Map the analog readings (0-4095) to (0-255)
+  valueLeftX = map(valueLeftX, 0, 4095, 0, 255);
+  valueLeftY = map(valueLeftY, 0, 4095, 0, 255);
+  valueRightX = map(valueRightX, 0, 4095, 0, 255);
+  valueRightY = map(valueRightY, 0, 4095, 0, 255);
 
   // Populate the struct with joystick values
   myData.valueLeftX = valueLeftX;
@@ -94,14 +92,14 @@ void loop() {
   }
 
   // Print data to Serial Monitor on Arduino IDE
-  Serial.print("Left x = ");
+  Serial.print("Left X = ");
   Serial.print(valueLeftX);
-  Serial.print(", Left y = ");
+  Serial.print(", Left Y = ");
   Serial.println(valueLeftY);
 
-  Serial.print("Right x = ");
+  Serial.print("Right X = ");
   Serial.print(valueRightX);
-  Serial.print(", Right y = ");
+  Serial.print(", Right Y = ");
   Serial.println(valueRightY);
 
   delay(2000); // Increased delay to match the packet sending interval

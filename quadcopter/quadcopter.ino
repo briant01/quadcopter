@@ -153,7 +153,10 @@ void setup() {
 
 void loop() {
 
-  digitalWrite(D)
+  ledcWrite(0, 1000);
+  ledcWrite(1, 1000);
+  ledcWrite(2, 1000);
+  ledcWrite(3, 1000);
 
   /* Get new sensor events with the readings */
   sensors_event_t a, g, temp;
