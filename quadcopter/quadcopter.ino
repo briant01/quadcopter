@@ -1,8 +1,3 @@
-/*
-  Rui Santos & Sara Santos - Random Nerd Tutorials
-  Complete project details at https://RandomNerdTutorials.com/esp-now-esp32-arduino-ide/  
-  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files.
-*/
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
@@ -50,6 +45,22 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
 void setup() {
   // Initialize Serial Monitor
   Serial.begin(115200);
+
+  pinMode(D2, OUTPUT);
+  pinMode(D3, OUTPUT);
+  pinMode(D5, OUTPUT);
+  pinMode(D6, OUTPUT);
+
+  ledcAttachPin(D2, 0);
+  ledCAttachPin(D3, 1);
+  ledCAttachPin(D5, 2);
+  ledCAttachPin(D6, 3);
+
+  ledcSetup(0, 20000, 8);
+  ledcSetup(1, 20000, 8);
+  ledcSetup(2, 20000, 8);
+  ledcSetup(3, 20000, 8);
+
   while (!Serial)
     delay(10); // will pause Zero, Leonardo, etc until serial console opens
 
@@ -141,6 +152,9 @@ void setup() {
 }
 
 void loop() {
+
+  digitalWrite(D)
+
   /* Get new sensor events with the readings */
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
