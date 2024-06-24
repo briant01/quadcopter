@@ -152,7 +152,7 @@ void setup() {
 }
 
 void loop() {
-
+  
   ledcWrite(0, 1000);
   ledcWrite(1, 1000);
   ledcWrite(2, 1000);
